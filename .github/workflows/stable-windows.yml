@@ -31,13 +31,13 @@ on:
     - '**/*.md'
 
 env:
-  APP_NAME: Void
-  ASSETS_REPOSITORY: ${{ github.repository_owner }}/binaries
-  BINARY_NAME: void
-  GH_REPO_PATH: ${{ github.repository_owner }}/binaries
+  APP_NAME: Clad
+  ASSETS_REPOSITORY: ${{ github.repository_owner }}/clad_ide_binaries
+  BINARY_NAME: clad
+  GH_REPO_PATH: ${{ github.repository_owner }}/clad_ide_binaries
   ORG_NAME: ${{ github.repository_owner }}
   OS_NAME: windows
-  VERSIONS_REPOSITORY: ${{ github.repository_owner }}/versions
+  # VERSIONS_REPOSITORY: Not needed for Clad
   VSCODE_QUALITY: stable
 
 jobs:

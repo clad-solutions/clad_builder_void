@@ -31,17 +31,17 @@ on:
     - '**/*.md'
 
 env:
-  APP_NAME: Void
+  APP_NAME: Clad
   # ASSETS_REPOSITORY is where all the downloads are.
-  # VSCodium has this be the current repo, voideditor/void-builder:
+  # VSCodium has this be the current repo, clad-solutions/clad_builder_void:
   # ASSETS_REPOSITORY: ${{ github.repository }}
 
-  ASSETS_REPOSITORY: ${{ github.repository_owner }}/binaries
-  BINARY_NAME: void
-  GH_REPO_PATH: ${{ github.repository_owner }}/binaries
+  ASSETS_REPOSITORY: ${{ github.repository_owner }}/clad_ide_binaries
+  BINARY_NAME: clad
+  GH_REPO_PATH: ${{ github.repository_owner }}/clad_ide_binaries
   ORG_NAME: ${{ github.repository_owner }}
   OS_NAME: osx
-  VERSIONS_REPOSITORY: ${{ github.repository_owner }}/versions
+  # VERSIONS_REPOSITORY: Not needed for Clad
   VSCODE_QUALITY: stable
 
 jobs:

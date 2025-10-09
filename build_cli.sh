@@ -7,12 +7,13 @@ cd cli
 export CARGO_NET_GIT_FETCH_WITH_CLI="true"
 export VSCODE_CLI_APP_NAME="$( echo "${APP_NAME}" | awk '{print tolower($0)}' )"
 export VSCODE_CLI_BINARY_NAME="$( node -p "require(\"../product.json\").serverApplicationName" )"
-export VSCODE_CLI_UPDATE_ENDPOINT="https://raw.githubusercontent.com/voideditor/versions/refs/heads/main" # Void
+# Update endpoint not needed for Clad
+# export VSCODE_CLI_UPDATE_ENDPOINT="https://raw.githubusercontent.com/clad-solutions/clad-versions/refs/heads/main"
 
 if [[ "${VSCODE_QUALITY}" == "insider" ]]; then
-  export VSCODE_CLI_DOWNLOAD_ENDPOINT="https://github.com/voideditor/void-insiders/releases"
+  export VSCODE_CLI_DOWNLOAD_ENDPOINT="https://github.com/clad-solutions/clad_ide_void-insiders/releases"
 else
-  export VSCODE_CLI_DOWNLOAD_ENDPOINT="https://github.com/voideditor/void/releases" # Void
+  export VSCODE_CLI_DOWNLOAD_ENDPOINT="https://github.com/clad-solutions/clad_ide_binaries/releases"
 fi
 
 TUNNEL_APPLICATION_NAME="$( node -p "require(\"../product.json\").tunnelApplicationName" )"

@@ -23,13 +23,13 @@ if [[ "${CI_BUILD}" != "no" ]]; then
 fi
 
 VOID_BRANCH="main"
-echo "Cloning void ${VOID_BRANCH}..."
+echo "Cloning clad_ide_void ${VOID_BRANCH}..."
 
 mkdir -p vscode
 cd vscode || { echo "'vscode' dir not found"; exit 1; }
 
 git init -q
-git remote add origin https://github.com/voideditor/void.git
+git remote add origin https://${GITHUB_TOKEN}@github.com/clad-solutions/clad_ide_void.git
 
 # Allow callers to specify a particular commit to checkout via the
 # environment variable VOID_COMMIT.  We still default to the tip of the

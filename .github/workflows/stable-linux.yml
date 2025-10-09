@@ -32,14 +32,14 @@ on:
 
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
-  APP_NAME: Void
-  ASSETS_REPOSITORY: ${{ github.repository_owner }}/binaries
-  BINARY_NAME: void
+  APP_NAME: Clad
+  ASSETS_REPOSITORY: ${{ github.repository_owner }}/clad_ide_binaries
+  BINARY_NAME: clad
   DISABLE_UPDATE: 'yes'
-  GH_REPO_PATH: ${{ github.repository_owner }}/binaries
+  GH_REPO_PATH: ${{ github.repository_owner }}/clad_ide_binaries
   ORG_NAME: ${{ github.repository_owner }}
   OS_NAME: linux
-  VERSIONS_REPOSITORY: ${{ github.repository_owner }}/versions
+  # VERSIONS_REPOSITORY: Not needed for Clad
   VSCODE_QUALITY: stable
 
 jobs:
