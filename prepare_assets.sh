@@ -74,7 +74,17 @@ if [[ "${OS_NAME}" == "osx" ]]; then
   if [[ "${SHOULD_BUILD_DMG}" != "no" ]]; then
     echo "Building and moving DMG"
     pushd "VSCode-darwin-${VSCODE_ARCH}"
-    npx create-dmg --skip-codesign "${APP_NAME}.app" .
+
+    # Debug: Show what's actually in this directory
+    echo "=== DEBUG: Contents of VSCode-darwin-${VSCODE_ARCH} ==="
+    ls -la
+    echo "=== DEBUG: Looking for .app files ==="
+    find . -name "*.app" -maxdepth 1
+    echo "=== DEBUG: APP_NAME variable ==="
+    echo "APP_NAME=${APP_NAME}"
+
+    # Original command with wildcard (as Void had it)
+    npx create-dmg --skip-codesign ./*.app .
     mv ./*.dmg "../assets/${APP_NAME}.${VSCODE_ARCH}.${RELEASE_VERSION}.dmg"
     popd
   fi
