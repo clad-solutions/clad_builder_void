@@ -80,9 +80,10 @@ jobs:
         if: env.VSCODE_ARCH == 'x64'
 
       - name: Clone VSCode repo
-        env: # Void added this
-          VOID_COMMIT: ${{ github.event.inputs.void_commit }} # Void added this
-          VOID_RELEASE: ${{ github.event.inputs.void_release }} # Void added this
+        env:
+          GITHUB_TOKEN: ${{ secrets.STRONGER_GITHUB_TOKEN }}
+          VOID_COMMIT: ${{ github.event.inputs.void_commit }}
+          VOID_RELEASE: ${{ github.event.inputs.void_release }}
         run: . get_repo.sh
 
       - name: Check PR or cron
