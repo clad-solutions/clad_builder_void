@@ -144,8 +144,8 @@ if [[ "${DISABLE_UPDATE}" != "yes" ]]; then
 fi
 
 if [[ "${VSCODE_QUALITY}" == "insider" ]]; then
-  setpath "product" "nameShort" "Clad - Insiders"
-  setpath "product" "nameLong" "Clad - Insiders"
+  setpath "product" "nameShort" "Chad - Insiders"
+  setpath "product" "nameLong" "Chad - Insiders"
   setpath "product" "applicationName" "clad-insiders"
   setpath "product" "dataFolderName" ".clad-insiders"
   setpath "product" "linuxIconName" "clad-insiders"
@@ -155,11 +155,11 @@ if [[ "${VSCODE_QUALITY}" == "insider" ]]; then
   setpath "product" "serverDataFolderName" ".clad-server-insiders"
   setpath "product" "darwinBundleIdentifier" "com.cladlabs.CladInsiders"
   setpath "product" "win32AppUserModelId" "Clad.CladInsiders"
-  setpath "product" "win32DirName" "Clad Insiders"
-  setpath "product" "win32MutexName" "cladinsiders"
-  setpath "product" "win32NameVersion" "Clad Insiders"
-  setpath "product" "win32RegValueName" "CladInsiders"
-  setpath "product" "win32ShellNameShort" "Clad Insiders"
+  setpath "product" "win32DirName" "Chad Insiders"
+  setpath "product" "win32MutexName" "chadinsiders"
+  setpath "product" "win32NameVersion" "Chad Insiders"
+  setpath "product" "win32RegValueName" "ChadInsiders"
+  setpath "product" "win32ShellNameShort" "Chad Insiders"
   setpath "product" "win32AppId" "{{5893CE20-77AA-4856-A655-ECE65CBCF1C7}"
   setpath "product" "win32x64AppId" "{{7A261980-5847-44B6-B554-31DF0F5CDFC9}"
   setpath "product" "win32arm64AppId" "{{EE4FF7AA-A874-419D-BAE0-168C9DBCE211}"
@@ -167,8 +167,8 @@ if [[ "${VSCODE_QUALITY}" == "insider" ]]; then
   setpath "product" "win32x64UserAppId" "{{5B1813E3-1D97-4E00-AF59-C59A39CF066A}"
   setpath "product" "win32arm64UserAppId" "{{C2FA90D8-B265-41B1-B909-3BAEB21CAA9D}"
 else
-  setpath "product" "nameShort" "Clad"
-  setpath "product" "nameLong" "Clad"
+  setpath "product" "nameShort" "Chad"
+  setpath "product" "nameLong" "Chad"
   setpath "product" "applicationName" "clad"
   setpath "product" "linuxIconName" "clad"
   setpath "product" "quality" "stable"
@@ -177,11 +177,11 @@ else
   setpath "product" "serverDataFolderName" ".clad-server"
   setpath "product" "darwinBundleIdentifier" "com.cladlabs.clad"
   setpath "product" "win32AppUserModelId" "Clad.Clad"
-  setpath "product" "win32DirName" "Clad"
-  setpath "product" "win32MutexName" "clad"
-  setpath "product" "win32NameVersion" "Clad"
-  setpath "product" "win32RegValueName" "Clad"
-  setpath "product" "win32ShellNameShort" "Clad"
+  setpath "product" "win32DirName" "Chad"
+  setpath "product" "win32MutexName" "chad"
+  setpath "product" "win32NameVersion" "Chad"
+  setpath "product" "win32RegValueName" "Chad"
+  setpath "product" "win32ShellNameShort" "Chad"
   # Clad - already set in product
   # setpath "product" "win32AppId" "{{88DA3577-054F-4CA1-8122-7D820494CFFB}"
   # setpath "product" "win32x64AppId" "{{9D394D01-1728-45A7-B997-A6C82C5452C3}"
@@ -201,27 +201,27 @@ cp package.json{,.bak}
 
 setpath "package" "version" "${RELEASE_VERSION%-insider}"
 
-replace 's|Microsoft Corporation|Clad|' package.json
+replace 's|Microsoft Corporation|Chad|' package.json
 
 cp resources/server/manifest.json{,.bak}
 
 if [[ "${VSCODE_QUALITY}" == "insider" ]]; then
-  setpath "resources/server/manifest" "name" "Clad - Insiders"
-  setpath "resources/server/manifest" "short_name" "Clad - Insiders"
+  setpath "resources/server/manifest" "name" "Chad - Insiders"
+  setpath "resources/server/manifest" "short_name" "Chad - Insiders"
 else
-  setpath "resources/server/manifest" "name" "Clad"
-  setpath "resources/server/manifest" "short_name" "Clad"
+  setpath "resources/server/manifest" "name" "Chad"
+  setpath "resources/server/manifest" "short_name" "Chad"
 fi
 
 cp resources/server/manifest.json{,.bak}
 
 if [[ "${VSCODE_QUALITY}" == "insider" ]]; then
-  setpath "resources/server/manifest" "name" "Clad - Insiders"
-  setpath "resources/server/manifest" "short_name" "Clad - Insiders"
+  setpath "resources/server/manifest" "name" "Chad - Insiders"
+  setpath "resources/server/manifest" "short_name" "Chad - Insiders"
 else
   # Clad already has this
-  setpath "resources/server/manifest" "name" "Clad"
-  setpath "resources/server/manifest" "short_name" "Clad"
+  setpath "resources/server/manifest" "name" "Chad"
+  setpath "resources/server/manifest" "short_name" "Chad"
 fi
 
 # announcements
@@ -229,10 +229,10 @@ fi
 
 ../undo_telemetry.sh
 
-replace 's|Microsoft Corporation|Clad|' build/lib/electron.js
-replace 's|Microsoft Corporation|Clad|' build/lib/electron.ts
-replace 's|([0-9]) Microsoft|\1 Clad|' build/lib/electron.js
-replace 's|([0-9]) Microsoft|\1 Clad|' build/lib/electron.ts
+replace 's|Microsoft Corporation|Chad|' build/lib/electron.js
+replace 's|Microsoft Corporation|Chad|' build/lib/electron.ts
+replace 's|([0-9]) Microsoft|\1 Chad|' build/lib/electron.js
+replace 's|([0-9]) Microsoft|\1 Chad|' build/lib/electron.ts
 
 if [[ "${OS_NAME}" == "linux" ]]; then
   # microsoft adds their apt repo to sources
@@ -247,30 +247,30 @@ if [[ "${OS_NAME}" == "linux" ]]; then
 
   # fix the packages metadata
   # code.appdata.xml
-  sed -i 's|Visual Studio Code|Clad|g' resources/linux/code.appdata.xml
+  sed -i 's|Visual Studio Code|Chad|g' resources/linux/code.appdata.xml
   sed -i 's|https://code.visualstudio.com/docs/setup/linux|https://www.cladlabs.ai|' resources/linux/code.appdata.xml
   sed -i 's|https://code.visualstudio.com/home/home-screenshot-linux-lg.png|https://www.cladlabs.ai/img/clad.png|' resources/linux/code.appdata.xml
   sed -i 's|https://code.visualstudio.com|https://www.cladlabs.ai|' resources/linux/code.appdata.xml
 
   # control.template
-  sed -i 's|Microsoft Corporation <vscode-linux@microsoft.com>|Clad <support@cladlabs.ai>|'  resources/linux/debian/control.template
-  sed -i 's|Visual Studio Code|Clad|g' resources/linux/debian/control.template
+  sed -i 's|Microsoft Corporation <vscode-linux@microsoft.com>|Chad <support@cladlabs.ai>|'  resources/linux/debian/control.template
+  sed -i 's|Visual Studio Code|Chad|g' resources/linux/debian/control.template
   sed -i 's|https://code.visualstudio.com/docs/setup/linux|https://www.cladlabs.ai|' resources/linux/debian/control.template
   sed -i 's|https://code.visualstudio.com|https://www.cladlabs.ai|' resources/linux/debian/control.template
 
   # code.spec.template
-  sed -i 's|Microsoft Corporation|Clad|' resources/linux/rpm/code.spec.template
-  sed -i 's|Visual Studio Code Team <vscode-linux@microsoft.com>|Clad <support@cladlabs.ai>|' resources/linux/rpm/code.spec.template
-  sed -i 's|Visual Studio Code|Clad|' resources/linux/rpm/code.spec.template
+  sed -i 's|Microsoft Corporation|Chad|' resources/linux/rpm/code.spec.template
+  sed -i 's|Visual Studio Code Team <vscode-linux@microsoft.com>|Chad <support@cladlabs.ai>|' resources/linux/rpm/code.spec.template
+  sed -i 's|Visual Studio Code|Chad|' resources/linux/rpm/code.spec.template
   sed -i 's|https://code.visualstudio.com/docs/setup/linux|https://www.cladlabs.ai|' resources/linux/rpm/code.spec.template
   sed -i 's|https://code.visualstudio.com|https://www.cladlabs.ai|' resources/linux/rpm/code.spec.template
 
   # snapcraft.yaml
-  sed -i 's|Visual Studio Code|Clad|'  resources/linux/rpm/code.spec.template
+  sed -i 's|Visual Studio Code|Chad|'  resources/linux/rpm/code.spec.template
 elif [[ "${OS_NAME}" == "windows" ]]; then
   # code.iss
   sed -i 's|https://code.visualstudio.com|https://www.cladlabs.ai|' build/win32/code.iss
-  sed -i 's|Microsoft Corporation|Clad|' build/win32/code.iss
+  sed -i 's|Microsoft Corporation|Chad|' build/win32/code.iss
 fi
 
 cd ..

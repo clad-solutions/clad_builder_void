@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-APP_NAME="${APP_NAME:-Clad}"
+APP_NAME="${APP_NAME:-Chad}"
 APP_NAME_LC="$( echo "${APP_NAME}" | awk '{print tolower($0)}' )"
-BINARY_NAME="${BINARY_NAME:-clad}"
+BINARY_NAME="${BINARY_NAME:-chad}"
 GH_REPO_PATH="${GH_REPO_PATH:-clad-solutions/clad_ide_void}"
 ORG_NAME="${ORG_NAME:-clad-solutions}"
 

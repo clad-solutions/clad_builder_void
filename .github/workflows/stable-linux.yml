@@ -32,9 +32,9 @@ on:
 
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
-  APP_NAME: Clad
+  APP_NAME: Chad
   ASSETS_REPOSITORY: ${{ github.repository_owner }}/clad_ide_binaries
-  BINARY_NAME: clad
+  BINARY_NAME: chad
   DISABLE_UPDATE: 'yes'
   GH_REPO_PATH: ${{ github.repository_owner }}/clad_ide_binaries
   ORG_NAME: ${{ github.repository_owner }}
