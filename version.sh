@@ -2,7 +2,7 @@
 
 if [[ -z "${BUILD_SOURCEVERSION}" ]]; then
 
-    # Void updated this to use the BUILD_SOURCEVERSION with voidVersion
+    # Clad: Updated to use BUILD_SOURCEVERSION with cladVersion
     echo "running version.sh"
     # Check if vscode directory exists
     if [[ -d "./vscode" ]]; then
