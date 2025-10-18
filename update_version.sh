@@ -22,6 +22,11 @@ if [[ "${FORCE_UPDATE}" == "true" ]]; then
   . version.sh
 fi
 
+if [[ -z "${VERSIONS_REPOSITORY}" ]]; then
+  echo "VERSIONS_REPOSITORY not set, skipping version update"
+  exit 0
+fi
+
 if [[ -z "${BUILD_SOURCEVERSION}" ]]; then
   echo "Will not update version JSON because no BUILD_SOURCEVERSION defined"
   exit 0
