@@ -49,11 +49,90 @@ if [[ "${OS_NAME}" == "osx" ]]; then
     cd "VSCode-darwin-${VSCODE_ARCH}"
     ZIP_FILE="./${APP_NAME}-darwin-${VSCODE_ARCH}-${RELEASE_VERSION}.zip"
 
+    echo "[NOTARIZE] Creating zip archive for notarization..."
     zip -r -X -y "${ZIP_FILE}" ./*.app
+    echo "[NOTARIZE] Zip file created: ${ZIP_FILE} ($(du -h "${ZIP_FILE}" | cut -f1))"
 
-    xcrun notarytool store-credentials "${APP_NAME}" --apple-id "${CERTIFICATE_OSX_ID}" --team-id "${CERTIFICATE_OSX_TEAM_ID}" --password "${CERTIFICATE_OSX_APP_PASSWORD}" --keychain "${KEYCHAIN}"
-    # xcrun notarytool history --keychain-profile "${APP_NAME}" --keychain "${KEYCHAIN}"
-    xcrun notarytool submit "${ZIP_FILE}" --keychain-profile "${APP_NAME}" --wait --keychain "${KEYCHAIN}"
+    # Write P8 key to file
+    echo "[NOTARIZE] Writing App Store Connect API key to temporary file..."
+    echo "${ASC_KEY_P8}" | base64 --decode > "${RUNNER_TEMP}/AuthKey.p8"
+
+    # Verify key file was created
+    if [ -f "${RUNNER_TEMP}/AuthKey.p8" ]; then
+      echo "[NOTARIZE] API key file created successfully at ${RUNNER_TEMP}/AuthKey.p8"
+    else
+      echo "[NOTARIZE] ERROR: Failed to create API key file"
+      exit 1
+    fi
+
+    # Log credentials being used (without exposing secrets)
+    echo "[NOTARIZE] Using App Store Connect credentials:"
+    echo "  - Issuer ID: ${ASC_ISSUER_ID:0:8}... (${#ASC_ISSUER_ID} chars)"
+    echo "  - Key ID: ${ASC_KEY_ID}"
+    echo "  - Key file: ${RUNNER_TEMP}/AuthKey.p8"
+
+    # Submit for notarization with retry logic
+    MAX_ATTEMPTS=3
+    ATTEMPT=1
+    echo "[NOTARIZE] Starting notarization submission (max $MAX_ATTEMPTS attempts)..."
+
+    while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+      echo "[NOTARIZE] ======================================"
+      echo "[NOTARIZE] Attempt $ATTEMPT of $MAX_ATTEMPTS"
+      echo "[NOTARIZE] ======================================"
+      echo "[NOTARIZE] Submitting ${ZIP_FILE} to Apple notary service..."
+      echo "[NOTARIZE] Command: xcrun notarytool submit --issuer [REDACTED] --key-id ${ASC_KEY_ID} --key [PATH] --wait"
+
+      START_TIME=$(date +%s)
+
+      if xcrun notarytool submit "${ZIP_FILE}" \
+        --issuer "${ASC_ISSUER_ID}" \
+        --key-id "${ASC_KEY_ID}" \
+        --key "${RUNNER_TEMP}/AuthKey.p8" \
+        --wait 2>&1 | tee /tmp/notarization_output.log; then
+
+        END_TIME=$(date +%s)
+        DURATION=$((END_TIME - START_TIME))
+        echo "[NOTARIZE] ======================================"
+        echo "[NOTARIZE] SUCCESS: Notarization completed!"
+        echo "[NOTARIZE] Duration: ${DURATION} seconds"
+        echo "[NOTARIZE] ======================================"
+        break
+      else
+        EXIT_CODE=$?
+        END_TIME=$(date +%s)
+        DURATION=$((END_TIME - START_TIME))
+
+        echo "[NOTARIZE] ======================================"
+        echo "[NOTARIZE] FAILED: Notarization attempt $ATTEMPT failed"
+        echo "[NOTARIZE] Exit code: $EXIT_CODE"
+        echo "[NOTARIZE] Duration: ${DURATION} seconds"
+        echo "[NOTARIZE] ======================================"
+
+        # Show last few lines of output for debugging
+        echo "[NOTARIZE] Last 10 lines of output:"
+        tail -10 /tmp/notarization_output.log || echo "[NOTARIZE] Could not read output log"
+
+        if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+          echo "[NOTARIZE] ======================================"
+          echo "[NOTARIZE] ERROR: All $MAX_ATTEMPTS attempts failed"
+          echo "[NOTARIZE] ======================================"
+          echo "[NOTARIZE] Full output:"
+          cat /tmp/notarization_output.log || echo "[NOTARIZE] Could not read full output log"
+          exit 1
+        fi
+
+        echo "[NOTARIZE] Waiting 10 seconds before retry..."
+        sleep 10
+        ATTEMPT=$((ATTEMPT + 1))
+      fi
+    done
+
+    # Clean up key file
+    echo "[NOTARIZE] Cleaning up temporary API key file..."
+    rm "${RUNNER_TEMP}/AuthKey.p8"
+    rm -f /tmp/notarization_output.log
+    echo "[NOTARIZE] Cleanup complete"
 
     echo "+ attach staple"
     xcrun stapler staple ./*.app
