@@ -12,10 +12,10 @@ on:
       checkout_pr:
         type: string
         description: Checkout PR
-      clad_commit:
+      void_commit: # Void added this
         type: string
-        description: Checkout specific Clad commit
-      clad_release:
+        description: Checkout specific Void commit
+      void_release: # Void added this
         type: string
         description: Custom release number
   repository_dispatch:
@@ -82,8 +82,8 @@ jobs:
       - name: Clone VSCode repo
         env:
           GITHUB_TOKEN: ${{ secrets.STRONGER_GITHUB_TOKEN }}
-          CLAD_COMMIT: ${{ github.event.inputs.clad_commit }}
-          CLAD_RELEASE: ${{ github.event.inputs.clad_release }}
+          VOID_COMMIT: ${{ github.event.inputs.void_commit }}
+          VOID_RELEASE: ${{ github.event.inputs.void_release }}
         run: . get_repo.sh
 
       - name: Check PR or cron

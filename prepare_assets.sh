@@ -79,7 +79,7 @@ if [[ "${OS_NAME}" == "osx" ]]; then
     APP_FILE=$(find . -name "*.app" -maxdepth 1 | head -n 1 | sed 's|^\./||')
     echo "Found app file: ${APP_FILE}"
 
-    npx create-dmg --no-code-sign ./*.app .
+    npx create-dmg ./*.app .
     mv ./*.dmg "../assets/${APP_NAME}.${VSCODE_ARCH}.${RELEASE_VERSION}.dmg"
     popd
   fi
