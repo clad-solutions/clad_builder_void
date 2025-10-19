@@ -59,8 +59,12 @@ if [[ "${OS_NAME}" == "osx" ]]; then
       # These are Node.js/shell scripts that don't need to be signed
       BIN_COUNT=$(find "$APP_FILE_TEMP/Contents/Resources/app" -type f -path "*/bin/*" -perm +111 ! -name "*.dylib" ! -name "*.node" ! -name "*.so" -exec chmod -x {} \; -print 2>/dev/null | wc -l | tr -d ' ')
 
-      TOTAL_FIXED=$((FIXED_COUNT + BIN_COUNT))
-      echo "  Removed execute permissions from ${TOTAL_FIXED} script/data files (${FIXED_COUNT} scripts + ${BIN_COUNT} bin/ files)"
+      # Remove execute from ALL files in node_modules that aren't native binaries
+      # This catches edge cases like xdg-open (no extension, not in bin/)
+      NODE_MODULES_COUNT=$(find "$APP_FILE_TEMP/Contents/Resources/app/node_modules" -type f -perm +111 ! -name "*.dylib" ! -name "*.node" ! -name "*.so" -exec chmod -x {} \; -print 2>/dev/null | wc -l | tr -d ' ')
+
+      TOTAL_FIXED=$((FIXED_COUNT + BIN_COUNT + NODE_MODULES_COUNT))
+      echo "  Removed execute permissions from ${TOTAL_FIXED} script/data files (${FIXED_COUNT} general + ${BIN_COUNT} bin/ + ${NODE_MODULES_COUNT} node_modules)"
     fi
     cd ..
 
