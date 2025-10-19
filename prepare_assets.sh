@@ -44,101 +44,145 @@ if [[ "${OS_NAME}" == "osx" ]]; then
     DEBUG="electron-osx-sign*" node vscode/build/darwin/sign.js "$( pwd )"
     # codesign --display --entitlements :- ""
 
-    echo "+ notarize"
+    echo "+ notarize (DMG via API key, custom poll)"
 
     cd "VSCode-darwin-${VSCODE_ARCH}"
-    ZIP_FILE="./${APP_NAME}-darwin-${VSCODE_ARCH}-${RELEASE_VERSION}.zip"
 
-    echo "[NOTARIZE] Creating zip archive for notarization..."
-    zip -r -X -y "${ZIP_FILE}" ./*.app
-    echo "[NOTARIZE] Zip file created: ${ZIP_FILE} ($(du -h "${ZIP_FILE}" | cut -f1))"
-
-    # Write P8 key to file
-    echo "[NOTARIZE] Writing App Store Connect API key to temporary file..."
-    echo "${ASC_KEY_P8}" | base64 --decode > "${RUNNER_TEMP}/AuthKey.p8"
-
-    # Verify key file was created
-    if [ -f "${RUNNER_TEMP}/AuthKey.p8" ]; then
-      echo "[NOTARIZE] API key file created successfully at ${RUNNER_TEMP}/AuthKey.p8"
-    else
-      echo "[NOTARIZE] ERROR: Failed to create API key file"
+    # 1) Ensure we have a DMG (stapling is supported on DMG, not ZIP)
+    APP_FILE="$(find . -maxdepth 1 -name '*.app' -print -quit)"
+    if [ -z "$APP_FILE" ]; then
+      echo "[NOTARIZE] ERROR: .app not found"
       exit 1
     fi
+    echo "[NOTARIZE] Found app: $APP_FILE"
 
-    # Log credentials being used (without exposing secrets)
+    DMG_FILE="./${APP_NAME}-darwin-${VSCODE_ARCH}-${RELEASE_VERSION}.dmg"
+    if [ ! -f "$DMG_FILE" ]; then
+      echo "[NOTARIZE] Creating DMG ${DMG_FILE}..."
+      hdiutil create -volname "${APP_NAME}" -srcfolder "$APP_FILE" -ov -format UDZO "$DMG_FILE"
+    fi
+    echo "[NOTARIZE] DMG ready: $DMG_FILE ($(du -h "$DMG_FILE" | cut -f1))"
+
+    # 2) Write API key, protect, and auto-clean
+    P8="${RUNNER_TEMP}/AuthKey.p8"
+    echo "[NOTARIZE] Writing App Store Connect API key to temporary file..."
+    echo "${ASC_KEY_P8}" | base64 --decode > "$P8"
+    chmod 600 "$P8"
+    cleanup_notary_key() { rm -f "$P8"; }
+    trap cleanup_notary_key EXIT
+
     echo "[NOTARIZE] Using App Store Connect credentials:"
     echo "  - Issuer ID: ${ASC_ISSUER_ID:0:8}... (${#ASC_ISSUER_ID} chars)"
     echo "  - Key ID: ${ASC_KEY_ID}"
-    echo "  - Key file: ${RUNNER_TEMP}/AuthKey.p8"
+    echo "  - Key file: $P8"
 
-    # Submit for notarization with retry logic
-    MAX_ATTEMPTS=3
-    ATTEMPT=1
-    echo "[NOTARIZE] Starting notarization submission (max $MAX_ATTEMPTS attempts)..."
+    # 3) Submit WITHOUT --wait, capture submission id
+    echo "[NOTARIZE] ======================================"
+    echo "[NOTARIZE] Submitting DMG to Apple notary service..."
+    echo "[NOTARIZE] ======================================"
+    START_TIME=$(date +%s)
 
-    while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-      echo "[NOTARIZE] ======================================"
-      echo "[NOTARIZE] Attempt $ATTEMPT of $MAX_ATTEMPTS"
-      echo "[NOTARIZE] ======================================"
-      echo "[NOTARIZE] Submitting ${ZIP_FILE} to Apple notary service..."
-      echo "[NOTARIZE] Command: xcrun notarytool submit --issuer [REDACTED] --key-id ${ASC_KEY_ID} --key [PATH] --wait"
+    SUBMIT_JSON=$(xcrun notarytool submit "$DMG_FILE" \
+      --issuer "$ASC_ISSUER_ID" --key-id "$ASC_KEY_ID" --key "$P8" \
+      --output-format json --progress 2>&1) || true
 
-      START_TIME=$(date +%s)
+    SUBMISSION_ID=$(python3 - <<'PY'
+import sys, json
+try:
+  print(json.load(sys.stdin).get("id",""))
+except Exception:
+  print("")
+PY
+<<<"$SUBMIT_JSON")
 
-      if xcrun notarytool submit "${ZIP_FILE}" \
-        --issuer "${ASC_ISSUER_ID}" \
-        --key-id "${ASC_KEY_ID}" \
-        --key "${RUNNER_TEMP}/AuthKey.p8" \
-        --wait 2>&1 | tee /tmp/notarization_output.log; then
+    if [ -z "$SUBMISSION_ID" ]; then
+      echo "[NOTARIZE] ERROR: no submission id returned:"
+      echo "$SUBMIT_JSON"
+      exit 1
+    fi
+    echo "[NOTARIZE] Submission ID: $SUBMISSION_ID"
 
-        END_TIME=$(date +%s)
-        DURATION=$((END_TIME - START_TIME))
-        echo "[NOTARIZE] ======================================"
-        echo "[NOTARIZE] SUCCESS: Notarization completed!"
-        echo "[NOTARIZE] Duration: ${DURATION} seconds"
-        echo "[NOTARIZE] ======================================"
+    # 4) Poll with exponential backoff (max ~60 minutes)
+    ATTEMPTS=0
+    MAX_ATTEMPTS=20          # 20 polls
+    SLEEP=15                 # start at 15s → doubles each loop; caps below
+    MAX_SLEEP=180            # cap at 3 minutes
+    STATUS=""
+
+    echo "[NOTARIZE] Polling for status (timeout: ~60 minutes, exponential backoff)..."
+
+    while [ $ATTEMPTS -lt $MAX_ATTEMPTS ]; do
+      sleep "$SLEEP"
+      ATTEMPTS=$((ATTEMPTS + 1))
+
+      INFO_JSON=$(xcrun notarytool info "$SUBMISSION_ID" \
+        --issuer "$ASC_ISSUER_ID" --key-id "$ASC_KEY_ID" --key "$P8" \
+        --output-format json 2>&1) || true
+
+      STATUS=$(python3 - <<'PY'
+import sys, json
+try:
+  print(json.load(sys.stdin).get("status",""))
+except Exception:
+  print("")
+PY
+<<<"$INFO_JSON")
+
+      ELAPSED=$(($(date +%s) - START_TIME))
+      echo "[NOTARIZE] Status: ${STATUS:-unknown} (attempt ${ATTEMPTS}/${MAX_ATTEMPTS}, ${ELAPSED}s elapsed, next check in ${SLEEP}s)"
+
+      if [ "$STATUS" = "Accepted" ]; then
         break
-      else
-        EXIT_CODE=$?
-        END_TIME=$(date +%s)
-        DURATION=$((END_TIME - START_TIME))
-
+      elif [ "$STATUS" = "Invalid" ]; then
         echo "[NOTARIZE] ======================================"
-        echo "[NOTARIZE] FAILED: Notarization attempt $ATTEMPT failed"
-        echo "[NOTARIZE] Exit code: $EXIT_CODE"
-        echo "[NOTARIZE] Duration: ${DURATION} seconds"
+        echo "[NOTARIZE] ERROR: Notarization INVALID"
         echo "[NOTARIZE] ======================================"
+        echo "[NOTARIZE] Fetching notary log..."
+        xcrun notarytool log "$SUBMISSION_ID" \
+          --issuer "$ASC_ISSUER_ID" --key-id "$ASC_KEY_ID" --key "$P8" > notary.log || true
+        echo "[NOTARIZE] --- Last 200 lines of notary.log ---"
+        tail -200 notary.log || true
+        exit 1
+      fi
 
-        # Show last few lines of output for debugging
-        echo "[NOTARIZE] Last 10 lines of output:"
-        tail -10 /tmp/notarization_output.log || echo "[NOTARIZE] Could not read output log"
-
-        if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
-          echo "[NOTARIZE] ======================================"
-          echo "[NOTARIZE] ERROR: All $MAX_ATTEMPTS attempts failed"
-          echo "[NOTARIZE] ======================================"
-          echo "[NOTARIZE] Full output:"
-          cat /tmp/notarization_output.log || echo "[NOTARIZE] Could not read full output log"
-          exit 1
-        fi
-
-        echo "[NOTARIZE] Waiting 10 seconds before retry..."
-        sleep 10
-        ATTEMPT=$((ATTEMPT + 1))
+      # Exponential backoff with cap
+      SLEEP=$((SLEEP * 2))
+      if [ $SLEEP -gt $MAX_SLEEP ]; then
+        SLEEP=$MAX_SLEEP
       fi
     done
 
-    # Clean up key file
-    echo "[NOTARIZE] Cleaning up temporary API key file..."
-    rm "${RUNNER_TEMP}/AuthKey.p8"
-    rm -f /tmp/notarization_output.log
-    echo "[NOTARIZE] Cleanup complete"
+    if [ "$STATUS" != "Accepted" ]; then
+      END_TIME=$(date +%s)
+      DURATION=$((END_TIME - START_TIME))
+      echo "[NOTARIZE] ======================================"
+      echo "[NOTARIZE] ERROR: Timed out waiting for notarization"
+      echo "[NOTARIZE] Duration: ${DURATION} seconds"
+      echo "[NOTARIZE] Last status: ${STATUS:-unknown}"
+      echo "[NOTARIZE] ======================================"
+      echo "[NOTARIZE] Fetching notary log..."
+      xcrun notarytool log "$SUBMISSION_ID" \
+        --issuer "$ASC_ISSUER_ID" --key-id "$ASC_KEY_ID" --key "$P8" > notary.log || true
+      echo "[NOTARIZE] --- Last 200 lines of notary.log ---"
+      tail -200 notary.log || true
+      exit 1
+    fi
 
-    echo "+ attach staple"
-    xcrun stapler staple ./*.app
-    # spctl --assess -vv --type install ./*.app
+    END_TIME=$(date +%s)
+    DURATION=$((END_TIME - START_TIME))
+    echo "[NOTARIZE] ======================================"
+    echo "[NOTARIZE] SUCCESS: Notarization accepted!"
+    echo "[NOTARIZE] Duration: ${DURATION} seconds"
+    echo "[NOTARIZE] ======================================"
 
-    rm "${ZIP_FILE}"
+    echo "[NOTARIZE] Stapling DMG..."
+    xcrun stapler staple "$DMG_FILE" || true
+    echo "[NOTARIZE] Stapling .app..."
+    xcrun stapler staple "$APP_FILE" || true
+
+    echo "[NOTARIZE] Saving notarization log (success)..."
+    xcrun notarytool log "$SUBMISSION_ID" \
+      --issuer "$ASC_ISSUER_ID" --key-id "$ASC_KEY_ID" --key "$P8" > notary.log || true
 
     cd ..
   fi
@@ -151,16 +195,11 @@ if [[ "${OS_NAME}" == "osx" ]]; then
   fi
 
   if [[ "${SHOULD_BUILD_DMG}" != "no" ]]; then
-    echo "Building and moving DMG"
-    pushd "VSCode-darwin-${VSCODE_ARCH}"
-
-    # Find the .app file explicitly to avoid wildcard expansion issues with npx
-    APP_FILE=$(find . -name "*.app" -maxdepth 1 | head -n 1 | sed 's|^\./||')
-    echo "Found app file: ${APP_FILE}"
-
-    npx create-dmg ./*.app .
-    mv ./*.dmg "../assets/${APP_NAME}.${VSCODE_ARCH}.${RELEASE_VERSION}.dmg"
-    popd
+    echo "Moving stapled DMG to assets"
+    # DMG was already created, notarized, and stapled in the notarization step
+    # Just move it to the assets directory
+    mv "VSCode-darwin-${VSCODE_ARCH}/${APP_NAME}-darwin-${VSCODE_ARCH}-${RELEASE_VERSION}.dmg" \
+       "assets/${APP_NAME}.${VSCODE_ARCH}.${RELEASE_VERSION}.dmg"
   fi
 
   if [[ "${SHOULD_BUILD_SRC}" == "yes" ]]; then
