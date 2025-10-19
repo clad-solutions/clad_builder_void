@@ -38,6 +38,27 @@ if [[ "${OS_NAME}" == "osx" ]]; then
 
     CODESIGN_IDENTITY="$( security find-identity -v -p codesigning "${KEYCHAIN}" | grep -oEi "([0-9A-F]{40})" | head -n 1 )"
 
+    echo "+ fixing file permissions before signing"
+    cd "VSCode-darwin-${VSCODE_ARCH}"
+    APP_FILE_TEMP="$(find . -maxdepth 1 -name '*.app' -print -quit)"
+
+    if [ -n "$APP_FILE_TEMP" ]; then
+      # Remove execute permissions from scripts, WASM, and text files
+      # These don't need +x and Apple treats them as executables requiring signatures
+      FIXED_COUNT=$(find "$APP_FILE_TEMP/Contents/Resources/app" -type f \( \
+        -name "*.sh" -o \
+        -name "*.js" -o \
+        -name "*.wasm" -o \
+        -name "LICENSE" -o \
+        -name "bower.json" -o \
+        -name "*.json" -o \
+        -name "*.md" \
+      \) -perm +111 -exec chmod -x {} \; -print 2>/dev/null | wc -l | tr -d ' ')
+
+      echo "  Removed execute permissions from ${FIXED_COUNT} script/data files"
+    fi
+    cd ..
+
     echo "+ signing"
     export CODESIGN_IDENTITY AGENT_TEMPDIRECTORY
 
