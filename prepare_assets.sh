@@ -202,6 +202,13 @@ if [[ "${OS_NAME}" == "osx" ]]; then
     DMG_FILE="./${APP_NAME}-darwin-${VSCODE_ARCH}-${RELEASE_VERSION}.dmg"
     if [ ! -f "$DMG_FILE" ]; then
       echo "[NOTARIZE] Creating DMG ${DMG_FILE}..."
+
+      # Wait a moment for file handles to be released after diagnostics
+      sleep 2
+
+      # Sync filesystem to ensure all writes are complete
+      sync
+
       hdiutil create -volname "${APP_NAME}" -srcfolder "$APP_FILE" -ov -format UDZO "$DMG_FILE"
     fi
     echo "[NOTARIZE] DMG ready: $DMG_FILE ($(du -h "$DMG_FILE" | cut -f1))"
