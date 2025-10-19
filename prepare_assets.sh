@@ -44,18 +44,131 @@ if [[ "${OS_NAME}" == "osx" ]]; then
     DEBUG="electron-osx-sign*" node vscode/build/darwin/sign.js "$( pwd )"
     # codesign --display --entitlements :- ""
 
-    echo "+ notarize (DMG via API key, custom poll)"
+    echo "=========================================="
+    echo "COMPREHENSIVE POST-SIGNING DIAGNOSTICS"
+    echo "=========================================="
 
     cd "VSCode-darwin-${VSCODE_ARCH}"
 
-    # 1) Ensure we have a DMG (stapling is supported on DMG, not ZIP)
     APP_FILE="$(find . -maxdepth 1 -name '*.app' -print -quit)"
     if [ -z "$APP_FILE" ]; then
-      echo "[NOTARIZE] ERROR: .app not found"
+      echo "[DIAGNOSTIC] ERROR: .app not found"
       exit 1
     fi
-    echo "[NOTARIZE] Found app: $APP_FILE"
+    echo "[DIAGNOSTIC] Found app: $APP_FILE"
 
+    # DIAGNOSTIC 1: Full codesign verbose output (first 120 lines)
+    echo ""
+    echo "[DIAGNOSTIC] === Full codesign output (first 120 lines) ==="
+    codesign -dv --verbose=4 "$APP_FILE" 2>&1 | head -120
+    echo ""
+
+    # DIAGNOSTIC 2: Deep strict verification
+    echo "[DIAGNOSTIC] === Deep strict code signature verification ==="
+    if codesign --verify --deep --strict --verbose=2 "$APP_FILE" 2>&1; then
+      echo "[DIAGNOSTIC] ✅ Deep code signature verification: PASSED"
+    else
+      echo "[DIAGNOSTIC] ❌ Deep code signature verification: FAILED"
+      echo "[DIAGNOSTIC] This will likely cause notarization to fail or timeout"
+    fi
+    echo ""
+
+    # DIAGNOSTIC 3: Check for hardened runtime
+    echo "[DIAGNOSTIC] === Hardened runtime check ==="
+    CODESIGN_INFO=$(codesign -dv --verbose=4 "$APP_FILE" 2>&1)
+    if echo "$CODESIGN_INFO" | grep -q "runtime"; then
+      echo "[DIAGNOSTIC] ✅ Hardened runtime: ENABLED"
+      echo "[DIAGNOSTIC] Runtime flags: $(echo "$CODESIGN_INFO" | grep -i "runtime" | head -3)"
+    else
+      echo "[DIAGNOSTIC] ❌ Hardened runtime: NOT DETECTED"
+      echo "[DIAGNOSTIC] Notarization will fail without hardened runtime"
+      echo "[DIAGNOSTIC] Codesign info (first 30 lines):"
+      echo "$CODESIGN_INFO" | head -30
+    fi
+    echo ""
+
+    # DIAGNOSTIC 4: Scan for unsigned binaries inside the app bundle
+    echo "[DIAGNOSTIC] === Scanning for unsigned binaries (this may take 1-2 minutes) ==="
+    UNSIGNED_COUNT=0
+    TOTAL_SCANNED=0
+
+    # Find all executable files, dylibs, and frameworks
+    while IFS= read -r -d '' file; do
+      TOTAL_SCANNED=$((TOTAL_SCANNED + 1))
+      # Check if file is signed
+      if ! codesign -v "$file" 2>/dev/null; then
+        echo "[DIAGNOSTIC] ⚠️  UNSIGNED: $file"
+        UNSIGNED_COUNT=$((UNSIGNED_COUNT + 1))
+        # Limit output to first 20 unsigned files
+        if [ $UNSIGNED_COUNT -ge 20 ]; then
+          echo "[DIAGNOSTIC] ... (stopping after 20 unsigned files, more may exist)"
+          break
+        fi
+      fi
+    done < <(find "$APP_FILE" -type f \( -name "*.dylib" -o -name "*.framework" -o -name "*.so" -o -perm +111 \) -print0 2>/dev/null)
+
+    echo "[DIAGNOSTIC] Scanned $TOTAL_SCANNED binaries, found $UNSIGNED_COUNT unsigned"
+    if [ $UNSIGNED_COUNT -eq 0 ]; then
+      echo "[DIAGNOSTIC] ✅ All binaries are signed"
+    else
+      echo "[DIAGNOSTIC] ❌ Found unsigned binaries - Apple will likely timeout during processing"
+      echo "[DIAGNOSTIC] These binaries must be signed before notarization will work"
+    fi
+    echo ""
+
+    # DIAGNOSTIC 5: Bundle structure validation
+    echo "[DIAGNOSTIC] === Bundle structure validation ==="
+    INFO_PLIST="$APP_FILE/Contents/Info.plist"
+    if [ ! -f "$INFO_PLIST" ]; then
+      echo "[DIAGNOSTIC] ❌ Missing Info.plist at: $INFO_PLIST"
+    else
+      echo "[DIAGNOSTIC] ✅ Info.plist exists"
+
+      BUNDLE_ID=$(/usr/libexec/PlistBuddy -c "Print CFBundleIdentifier" "$INFO_PLIST" 2>/dev/null || echo "NOT_FOUND")
+      BUNDLE_EXE=$(/usr/libexec/PlistBuddy -c "Print CFBundleExecutable" "$INFO_PLIST" 2>/dev/null || echo "NOT_FOUND")
+      BUNDLE_VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleVersion" "$INFO_PLIST" 2>/dev/null || echo "NOT_FOUND")
+
+      echo "[DIAGNOSTIC]   - CFBundleIdentifier: $BUNDLE_ID"
+      echo "[DIAGNOSTIC]   - CFBundleExecutable: $BUNDLE_EXE"
+      echo "[DIAGNOSTIC]   - CFBundleVersion: $BUNDLE_VERSION"
+
+      # Check if executable exists
+      if [ "$BUNDLE_EXE" != "NOT_FOUND" ]; then
+        EXE_PATH="$APP_FILE/Contents/MacOS/$BUNDLE_EXE"
+        if [ -f "$EXE_PATH" ]; then
+          echo "[DIAGNOSTIC] ✅ Main executable exists: $EXE_PATH"
+        else
+          echo "[DIAGNOSTIC] ❌ Main executable not found: $EXE_PATH"
+        fi
+      fi
+    fi
+    echo ""
+
+    # DIAGNOSTIC 6: Check helper apps
+    echo "[DIAGNOSTIC] === Helper apps verification ==="
+    HELPER_COUNT=0
+    for helper in "$APP_FILE/Contents/Frameworks"/*.app; do
+      if [ -d "$helper" ]; then
+        HELPER_COUNT=$((HELPER_COUNT + 1))
+        HELPER_NAME=$(basename "$helper")
+        if codesign -v "$helper" 2>/dev/null; then
+          echo "[DIAGNOSTIC] ✅ $HELPER_NAME: signed"
+        else
+          echo "[DIAGNOSTIC] ❌ $HELPER_NAME: unsigned or invalid signature"
+        fi
+      fi
+    done
+    echo "[DIAGNOSTIC] Found $HELPER_COUNT helper apps"
+    echo ""
+
+    echo "=========================================="
+    echo "END DIAGNOSTICS - Starting notarization"
+    echo "=========================================="
+    echo ""
+
+    echo "+ notarize (DMG via API key, custom poll)"
+
+    # 1) Create DMG from the signed .app
     DMG_FILE="./${APP_NAME}-darwin-${VSCODE_ARCH}-${RELEASE_VERSION}.dmg"
     if [ ! -f "$DMG_FILE" ]; then
       echo "[NOTARIZE] Creating DMG ${DMG_FILE}..."
@@ -96,14 +209,17 @@ if [[ "${OS_NAME}" == "osx" ]]; then
     fi
     echo "[NOTARIZE] Submission ID: $SUBMISSION_ID"
 
-    # 4) Poll with exponential backoff (max ~60 minutes)
+    # 4) Poll with exponential backoff (max ~120 minutes for large binaries)
     ATTEMPTS=0
-    MAX_ATTEMPTS=20          # 20 polls
+    MAX_ATTEMPTS=40          # 40 polls (increased from 20) = ~120 minutes
     SLEEP=15                 # start at 15s → doubles each loop; caps below
     MAX_SLEEP=180            # cap at 3 minutes
     STATUS=""
+    CONSECUTIVE_FAILURES=0
+    MAX_CONSECUTIVE_FAILURES=5
 
-    echo "[NOTARIZE] Polling for status (timeout: ~60 minutes, exponential backoff)..."
+    echo "[NOTARIZE] Polling for status (timeout: ~120 minutes, exponential backoff)..."
+    echo "[NOTARIZE] Binary size: $(du -h "$DMG_FILE" | cut -f1) - large binaries take longer"
 
     while [ $ATTEMPTS -lt $MAX_ATTEMPTS ]; do
       sleep "$SLEEP"
@@ -116,14 +232,29 @@ if [[ "${OS_NAME}" == "osx" ]]; then
       # Extract status using grep (more reliable than python JSON parsing)
       STATUS=$(echo "$INFO_JSON" | grep -o '"status":"[^"]*"' | head -1 | cut -d'"' -f4)
 
+      # Detect if we're getting no status (API/network issue)
+      if [ -z "$STATUS" ]; then
+        CONSECUTIVE_FAILURES=$((CONSECUTIVE_FAILURES + 1))
+        echo "[NOTARIZE] WARNING: Could not extract status (failure ${CONSECUTIVE_FAILURES}/${MAX_CONSECUTIVE_FAILURES})"
+        echo "[NOTARIZE] Raw response: ${INFO_JSON:0:200}..."
+
+        if [ $CONSECUTIVE_FAILURES -ge $MAX_CONSECUTIVE_FAILURES ]; then
+          echo "[NOTARIZE] ERROR: Too many consecutive failures to get status - possible API/network issue"
+          exit 1
+        fi
+      else
+        CONSECUTIVE_FAILURES=0  # Reset on success
+      fi
+
       ELAPSED=$(($(date +%s) - START_TIME))
-      echo "[NOTARIZE] Status: ${STATUS:-unknown} (attempt ${ATTEMPTS}/${MAX_ATTEMPTS}, ${ELAPSED}s elapsed, next check in ${SLEEP}s)"
+      MINUTES=$((ELAPSED / 60))
+      echo "[NOTARIZE] Status: ${STATUS:-unknown} (attempt ${ATTEMPTS}/${MAX_ATTEMPTS}, ${MINUTES}m ${$((ELAPSED % 60))}s elapsed, next check in ${SLEEP}s)"
 
       if [ "$STATUS" = "Accepted" ]; then
         break
-      elif [ "$STATUS" = "Invalid" ]; then
+      elif [ "$STATUS" = "Invalid" ] || [ "$STATUS" = "Rejected" ]; then
         echo "[NOTARIZE] ======================================"
-        echo "[NOTARIZE] ERROR: Notarization INVALID"
+        echo "[NOTARIZE] ERROR: Notarization ${STATUS}"
         echo "[NOTARIZE] ======================================"
         echo "[NOTARIZE] Fetching notary log..."
         xcrun notarytool log "$SUBMISSION_ID" \
@@ -131,6 +262,11 @@ if [[ "${OS_NAME}" == "osx" ]]; then
         echo "[NOTARIZE] --- Last 200 lines of notary.log ---"
         tail -200 notary.log || true
         exit 1
+      elif [ "$STATUS" = "In Progress" ]; then
+        # Log every 10 attempts to show we're still trying
+        if [ $((ATTEMPTS % 10)) -eq 0 ]; then
+          echo "[NOTARIZE] Still in progress after ${MINUTES} minutes - this is normal for large binaries"
+        fi
       fi
 
       # Exponential backoff with cap
@@ -164,9 +300,61 @@ if [[ "${OS_NAME}" == "osx" ]]; then
     echo "[NOTARIZE] ======================================"
 
     echo "[NOTARIZE] Stapling DMG..."
-    xcrun stapler staple "$DMG_FILE" || true
+    if xcrun stapler staple "$DMG_FILE" 2>&1; then
+      echo "[NOTARIZE] ✅ DMG stapling: SUCCESS"
+    else
+      echo "[NOTARIZE] ⚠️  DMG stapling: FAILED (ticket may not be available yet)"
+    fi
+
     echo "[NOTARIZE] Stapling .app..."
-    xcrun stapler staple "$APP_FILE" || true
+    if xcrun stapler staple "$APP_FILE" 2>&1; then
+      echo "[NOTARIZE] ✅ .app stapling: SUCCESS"
+    else
+      echo "[NOTARIZE] ⚠️  .app stapling: FAILED (ticket may not be available yet)"
+    fi
+
+    echo ""
+    echo "=========================================="
+    echo "POST-STAPLING VERIFICATION"
+    echo "=========================================="
+
+    # Verify stapled DMG with spctl (Gatekeeper)
+    echo "[VERIFY] Testing DMG with Gatekeeper (spctl)..."
+    SPCTL_DMG_OUTPUT=$(spctl -a -t open --context context:primary-signature -vv "$DMG_FILE" 2>&1 || true)
+    if echo "$SPCTL_DMG_OUTPUT" | grep -q "accepted"; then
+      echo "[VERIFY] ✅ DMG Gatekeeper check: PASSED"
+      echo "[VERIFY] Users will be able to open this DMG without warnings"
+    else
+      echo "[VERIFY] ⚠️  DMG Gatekeeper check: FAILED or UNCERTAIN"
+      echo "[VERIFY] Output: $SPCTL_DMG_OUTPUT"
+    fi
+
+    # Verify stapled .app with spctl
+    echo "[VERIFY] Testing .app with Gatekeeper (spctl)..."
+    SPCTL_APP_OUTPUT=$(spctl -a -vv "$APP_FILE" 2>&1 || true)
+    if echo "$SPCTL_APP_OUTPUT" | grep -q "accepted"; then
+      echo "[VERIFY] ✅ .app Gatekeeper check: PASSED (source: $(echo "$SPCTL_APP_OUTPUT" | grep -o 'source=[^)]*' || echo 'unknown'))"
+      echo "[VERIFY] Users will be able to run this app without warnings"
+    elif echo "$SPCTL_APP_OUTPUT" | grep -qi "notarized"; then
+      echo "[VERIFY] ✅ .app is notarized (Gatekeeper may show it as accepted after distribution)"
+    else
+      echo "[VERIFY] ⚠️  .app Gatekeeper check: FAILED"
+      echo "[VERIFY] Output: $SPCTL_APP_OUTPUT"
+      echo "[VERIFY] NOTE: This may still work after users download it (Gatekeeper caches change)"
+    fi
+
+    # Verify staple ticket is actually attached
+    echo "[VERIFY] Checking if notarization ticket is attached to DMG..."
+    if xcrun stapler validate "$DMG_FILE" 2>&1 | grep -q "validated"; then
+      echo "[VERIFY] ✅ DMG notarization ticket: ATTACHED"
+    else
+      echo "[VERIFY] ⚠️  DMG notarization ticket: NOT FOUND or validation failed"
+    fi
+
+    echo "=========================================="
+    echo "END VERIFICATION"
+    echo "=========================================="
+    echo ""
 
     echo "[NOTARIZE] Saving notarization log (success)..."
     xcrun notarytool log "$SUBMISSION_ID" \
