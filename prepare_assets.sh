@@ -55,7 +55,12 @@ if [[ "${OS_NAME}" == "osx" ]]; then
         -name "*.md" \
       \) -perm +111 -exec chmod -x {} \; -print 2>/dev/null | wc -l | tr -d ' ')
 
-      echo "  Removed execute permissions from ${FIXED_COUNT} script/data files"
+      # Also remove execute from CLI scripts in bin/ directories
+      # These are Node.js/shell scripts that don't need to be signed
+      BIN_COUNT=$(find "$APP_FILE_TEMP/Contents/Resources/app" -type f -path "*/bin/*" -perm +111 ! -name "*.dylib" ! -name "*.node" ! -name "*.so" -exec chmod -x {} \; -print 2>/dev/null | wc -l | tr -d ' ')
+
+      TOTAL_FIXED=$((FIXED_COUNT + BIN_COUNT))
+      echo "  Removed execute permissions from ${TOTAL_FIXED} script/data files (${FIXED_COUNT} scripts + ${BIN_COUNT} bin/ files)"
     fi
     cd ..
 
