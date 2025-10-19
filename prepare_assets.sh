@@ -84,16 +84,10 @@ if [[ "${OS_NAME}" == "osx" ]]; then
 
     SUBMIT_JSON=$(xcrun notarytool submit "$DMG_FILE" \
       --issuer "$ASC_ISSUER_ID" --key-id "$ASC_KEY_ID" --key "$P8" \
-      --output-format json --progress 2>&1) || true
+      --output-format json 2>&1) || true
 
-    SUBMISSION_ID=$(python3 - <<'PY'
-import sys, json
-try:
-  print(json.load(sys.stdin).get("id",""))
-except Exception:
-  print("")
-PY
-<<<"$SUBMIT_JSON")
+    # Extract submission ID - handle both with and without --progress output
+    SUBMISSION_ID=$(echo "$SUBMIT_JSON" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
 
     if [ -z "$SUBMISSION_ID" ]; then
       echo "[NOTARIZE] ERROR: no submission id returned:"
@@ -119,14 +113,8 @@ PY
         --issuer "$ASC_ISSUER_ID" --key-id "$ASC_KEY_ID" --key "$P8" \
         --output-format json 2>&1) || true
 
-      STATUS=$(python3 - <<'PY'
-import sys, json
-try:
-  print(json.load(sys.stdin).get("status",""))
-except Exception:
-  print("")
-PY
-<<<"$INFO_JSON")
+      # Extract status using grep (more reliable than python JSON parsing)
+      STATUS=$(echo "$INFO_JSON" | grep -o '"status":"[^"]*"' | head -1 | cut -d'"' -f4)
 
       ELAPSED=$(($(date +%s) - START_TIME))
       echo "[NOTARIZE] Status: ${STATUS:-unknown} (attempt ${ATTEMPTS}/${MAX_ATTEMPTS}, ${ELAPSED}s elapsed, next check in ${SLEEP}s)"
