@@ -278,7 +278,8 @@ if [[ "${OS_NAME}" == "osx" ]]; then
 
       ELAPSED=$(($(date +%s) - START_TIME))
       MINUTES=$((ELAPSED / 60))
-      echo "[NOTARIZE] Status: ${STATUS:-unknown} (attempt ${ATTEMPTS}/${MAX_ATTEMPTS}, ${MINUTES}m ${$((ELAPSED % 60))}s elapsed, next check in ${SLEEP}s)"
+      SECONDS=$((ELAPSED % 60))
+      echo "[NOTARIZE] Status: ${STATUS:-unknown} (attempt ${ATTEMPTS}/${MAX_ATTEMPTS}, ${MINUTES}m ${SECONDS}s elapsed, next check in ${SLEEP}s)"
 
       if [ "$STATUS" = "Accepted" ]; then
         break
