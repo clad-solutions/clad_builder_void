@@ -12,10 +12,10 @@ on:
       checkout_pr:
         type: string
         description: Checkout PR
-      void_commit: # Void added this
+      clad_commit:
         type: string
-        description: Checkout specific Void commit
-      void_release: # Void added this
+        description: Checkout specific Clad commit
+      clad_release:
         type: string
         description: Custom release number
   repository_dispatch:
@@ -82,8 +82,8 @@ jobs:
       - name: Clone VSCode repo
         env:
           GITHUB_TOKEN: ${{ secrets.STRONGER_GITHUB_TOKEN }}
-          VOID_COMMIT: ${{ github.event.inputs.void_commit }}
-          VOID_RELEASE: ${{ github.event.inputs.void_release }}
+          CLAD_COMMIT: ${{ github.event.inputs.clad_commit }}
+          CLAD_RELEASE: ${{ github.event.inputs.clad_release }}
         run: . get_repo.sh
 
       - name: Check PR or cron
@@ -110,9 +110,6 @@ jobs:
           CERTIFICATE_OSX_P12_DATA: ${{ secrets.CERTIFICATE_OSX_NEW_P12_DATA }}
           CERTIFICATE_OSX_P12_PASSWORD: ${{ secrets.CERTIFICATE_OSX_NEW_P12_PASSWORD }}
           CERTIFICATE_OSX_TEAM_ID: ${{ secrets.CERTIFICATE_OSX_NEW_TEAM_ID }}
-          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
         run: ./prepare_assets.sh
         if: env.SHOULD_BUILD == 'yes' && (env.SHOULD_DEPLOY == 'yes' || github.event.inputs.generate_assets == 'true')
 

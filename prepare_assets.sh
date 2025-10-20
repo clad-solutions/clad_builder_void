@@ -74,7 +74,12 @@ if [[ "${OS_NAME}" == "osx" ]]; then
   if [[ "${SHOULD_BUILD_DMG}" != "no" ]]; then
     echo "Building and moving DMG"
     pushd "VSCode-darwin-${VSCODE_ARCH}"
-    npx create-dmg --skip-codesign ./*.app .
+
+    # Find the .app file explicitly to avoid wildcard expansion issues with npx
+    APP_FILE=$(find . -name "*.app" -maxdepth 1 | head -n 1 | sed 's|^\./||')
+    echo "Found app file: ${APP_FILE}"
+
+    npx create-dmg --no-code-sign ./*.app .
     mv ./*.dmg "../assets/${APP_NAME}.${VSCODE_ARCH}.${RELEASE_VERSION}.dmg"
     popd
   fi
@@ -219,6 +224,8 @@ fi
 if [[ "${OS_NAME}" != "windows" ]]; then
   ./prepare_checksums.sh
 fi
+
+
 
 # #!/usr/bin/env bash
 # # shellcheck disable=SC1091
