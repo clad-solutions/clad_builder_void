@@ -246,17 +246,18 @@ if [[ "${OS_NAME}" == "osx" ]]; then
     fi
     echo "[NOTARIZE] Submission ID: $SUBMISSION_ID"
 
-    # 4) Poll with exponential backoff (max ~120 minutes for large binaries)
+    # 4) Poll with exponential backoff (reduced for debugging)
     ATTEMPTS=0
-    MAX_ATTEMPTS=40          # 40 polls (increased from 20) = ~120 minutes
-    SLEEP=15                 # start at 15s → doubles each loop; caps below
-    MAX_SLEEP=180            # cap at 3 minutes
+    MAX_ATTEMPTS=3           # 3 polls = ~2 minutes (for quick debugging)
+    SLEEP=15                 # start at 15s
+    MAX_SLEEP=60             # cap at 1 minute
     STATUS=""
     CONSECUTIVE_FAILURES=0
     MAX_CONSECUTIVE_FAILURES=5
 
-    echo "[NOTARIZE] Polling for status (timeout: ~120 minutes, exponential backoff)..."
-    echo "[NOTARIZE] Binary size: $(du -h "$DMG_FILE" | cut -f1) - large binaries take longer"
+    echo "[NOTARIZE] Polling for status (timeout: ~2 minutes for debugging)..."
+    echo "[NOTARIZE] Binary size: $(du -h "$DMG_FILE" | cut -f1)"
+    echo "[NOTARIZE] Submission ID saved for manual checking: $SUBMISSION_ID"
 
     while [ $ATTEMPTS -lt $MAX_ATTEMPTS ]; do
       sleep "$SLEEP"
@@ -301,10 +302,8 @@ if [[ "${OS_NAME}" == "osx" ]]; then
         tail -200 notary.log || true
         exit 1
       elif [ "$STATUS" = "In Progress" ]; then
-        # Log every 10 attempts to show we're still trying
-        if [ $((ATTEMPTS % 10)) -eq 0 ]; then
-          echo "[NOTARIZE] Still in progress after ${MINUTES} minutes - this is normal for large binaries"
-        fi
+        # Don't log progress indicators for quick debugging mode
+        true
       fi
 
       # Exponential backoff with cap
