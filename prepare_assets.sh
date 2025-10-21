@@ -79,7 +79,13 @@ if [[ "${OS_NAME}" == "osx" ]]; then
     APP_FILE=$(find . -name "*.app" -maxdepth 1 | head -n 1 | sed 's|^\./||')
     echo "Found app file: ${APP_FILE}"
 
-    npx create-dmg ./*.app .
+    if [[ -n "${CODESIGN_IDENTITY}" ]]; then
+      echo "Signing DMG with identity: ${CODESIGN_IDENTITY}"
+      npx create-dmg --identity="${CODESIGN_IDENTITY}" ./*.app .
+    else
+      echo "No signing identity found, creating DMG without code signing"
+      npx create-dmg --no-code-sign ./*.app .
+    fi
     mv ./*.dmg "../assets/${APP_NAME}.${VSCODE_ARCH}.${RELEASE_VERSION}.dmg"
     popd
   fi
