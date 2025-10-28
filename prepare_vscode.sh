@@ -138,8 +138,8 @@ setpath "product" "tipsAndTricksUrl" "https://go.microsoft.com/fwlink/?linkid=85
 setpath "product" "twitterUrl" "https://www.cladlabs.ai/"
 
 if [[ "${DISABLE_UPDATE}" != "yes" ]]; then
-  # Update URL not needed for Clad
-  # setpath "product" "updateUrl" "https://raw.githubusercontent.com/clad-solutions/clad-versions/refs/heads/main"
+  # Enable Electron auto-updater
+  setpath "product" "updateUrl" "https://raw.githubusercontent.com/clad-solutions/clad_ide_versions/main"
   setpath "product" "downloadUrl" "https://github.com/clad-solutions/clad_ide_binaries/releases"
 fi
 
