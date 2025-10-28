@@ -41,7 +41,7 @@ env:
   GH_REPO_PATH: ${{ github.repository_owner }}/clad_ide_binaries
   ORG_NAME: ${{ github.repository_owner }}
   OS_NAME: osx
-  # VERSIONS_REPOSITORY: Not needed for Clad
+  VERSIONS_REPOSITORY: ${{ github.repository_owner }}/clad_ide_versions
   VSCODE_QUALITY: stable
 
 jobs:
