@@ -47,7 +47,7 @@ if [[ "${OS_NAME}" == "osx" ]]; then
     echo "+ notarize"
 
     cd "VSCode-darwin-${VSCODE_ARCH}"
-    ZIP_FILE="./${APP_NAME}-darwin-${VSCODE_ARCH}-${RELEASE_VERSION}.zip"
+    ZIP_FILE="./${APP_NAME}-darwin-${VSCODE_ARCH}-${CLAD_VERSION}.zip"
 
     zip -r -X -y "${ZIP_FILE}" ./*.app
 
@@ -67,7 +67,7 @@ if [[ "${OS_NAME}" == "osx" ]]; then
   if [[ "${SHOULD_BUILD_ZIP}" != "no" ]]; then
     echo "Building and moving ZIP"
     cd "VSCode-darwin-${VSCODE_ARCH}"
-    zip -r -X -y "../assets/${APP_NAME}-darwin-${VSCODE_ARCH}-${RELEASE_VERSION}.zip" ./*.app
+    zip -r -X -y "../assets/${APP_NAME}-darwin-${VSCODE_ARCH}-${CLAD_VERSION}.zip" ./*.app
     cd ..
   fi
 
@@ -86,7 +86,7 @@ if [[ "${OS_NAME}" == "osx" ]]; then
       echo "No signing identity found, creating DMG without code signing"
       npx create-dmg --no-code-sign ./*.app .
     fi
-    mv ./*.dmg "../assets/${APP_NAME}.${VSCODE_ARCH}.${RELEASE_VERSION}.dmg"
+    mv ./*.dmg "../assets/${APP_NAME}.${VSCODE_ARCH}.${CLAD_VERSION}.dmg"
     popd
   fi
 

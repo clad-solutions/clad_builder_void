@@ -153,7 +153,7 @@ git remote add origin "https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@${GH_HOST}/${V
 cd ..
 
 if [[ "${OS_NAME}" == "osx" ]]; then
-  ASSET_NAME="${APP_NAME}-darwin-${VSCODE_ARCH}-${RELEASE_VERSION}.zip"
+  ASSET_NAME="${APP_NAME}-darwin-${VSCODE_ARCH}-${CLAD_VERSION}.zip"
   VERSION_PATH="${VSCODE_QUALITY}/darwin/${VSCODE_ARCH}"
   updateLatestVersion
 elif [[ "${OS_NAME}" == "windows" ]]; then
