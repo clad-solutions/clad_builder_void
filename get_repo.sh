@@ -50,13 +50,15 @@ MS_TAG=$( jq -r '.version' "package.json" )
 MS_COMMIT=$CLAD_BRANCH # Clad - MS_COMMIT doesn't seem to do much
 CLAD_VERSION=$( jq -r '.cladVersion' "product.json" ) # Clad version
 
-if [[ -n "${CLAD_RELEASE}" ]]; then # Clad - CLAD_RELEASE is optional to bump manually
-  RELEASE_VERSION="${MS_TAG}${CLAD_RELEASE}"
+# Use cladVersion as RELEASE_VERSION for clean semantic versioning
+# This makes release tags match user-facing version (e.g., 0.1.0)
+if [[ -n "${CLAD_RELEASE}" ]]; then
+  # Manual override via environment variable
+  RELEASE_VERSION="${CLAD_RELEASE}"
 else
-  CLAD_RELEASE=$( jq -r '.cladRelease' "product.json" )
-  RELEASE_VERSION="${MS_TAG}${CLAD_RELEASE}"
+  # Default: use cladVersion from product.json
+  RELEASE_VERSION="${CLAD_VERSION}"
 fi
-# Clad - RELEASE_VERSION is later used as version (1.0.3+RELEASE_VERSION), so it MUST be a number or it will throw a semver error
 
 
 echo "RELEASE_VERSION=\"${RELEASE_VERSION}\""
