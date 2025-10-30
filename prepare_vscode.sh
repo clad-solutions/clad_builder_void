@@ -166,6 +166,29 @@ if [[ "${VSCODE_QUALITY}" == "insider" ]]; then
   setpath "product" "win32UserAppId" "{{FA3AE0C7-888E-45DA-AB58-B8E33DE0CB2E}"
   setpath "product" "win32x64UserAppId" "{{5B1813E3-1D97-4E00-AF59-C59A39CF066A}"
   setpath "product" "win32arm64UserAppId" "{{C2FA90D8-B265-41B1-B909-3BAEB21CAA9D}"
+elif [[ "${VSCODE_QUALITY}" == "beta" ]]; then
+  setpath "product" "nameShort" "Chad - Beta"
+  setpath "product" "nameLong" "Chad - Beta"
+  setpath "product" "applicationName" "clad-beta"
+  setpath "product" "dataFolderName" ".clad-beta"
+  setpath "product" "linuxIconName" "clad-beta"
+  setpath "product" "quality" "beta"
+  setpath "product" "urlProtocol" "clad-beta"
+  setpath "product" "serverApplicationName" "clad-server-beta"
+  setpath "product" "serverDataFolderName" ".clad-server-beta"
+  setpath "product" "darwinBundleIdentifier" "com.cladlabs.CladBeta"
+  setpath "product" "win32AppUserModelId" "Clad.CladBeta"
+  setpath "product" "win32DirName" "Chad Beta"
+  setpath "product" "win32MutexName" "chadbeta"
+  setpath "product" "win32NameVersion" "Chad Beta"
+  setpath "product" "win32RegValueName" "ChadBeta"
+  setpath "product" "win32ShellNameShort" "Chad Beta"
+  setpath "product" "win32AppId" "{{A1B2C3D4-1234-5678-90AB-CDEF12345678}"
+  setpath "product" "win32x64AppId" "{{B2C3D4E5-2345-6789-01BC-DEF123456789}"
+  setpath "product" "win32arm64AppId" "{{C3D4E5F6-3456-7890-12CD-EF1234567890}"
+  setpath "product" "win32UserAppId" "{{D4E5F6A7-4567-8901-23DE-F12345678901}"
+  setpath "product" "win32x64UserAppId" "{{E5F6A7B8-5678-9012-34EF-123456789012}"
+  setpath "product" "win32arm64UserAppId" "{{F6A7B8C9-6789-0123-45F0-234567890123}"
 else
   setpath "product" "nameShort" "Chad"
   setpath "product" "nameLong" "Chad"
@@ -208,18 +231,10 @@ cp resources/server/manifest.json{,.bak}
 if [[ "${VSCODE_QUALITY}" == "insider" ]]; then
   setpath "resources/server/manifest" "name" "Chad - Insiders"
   setpath "resources/server/manifest" "short_name" "Chad - Insiders"
+elif [[ "${VSCODE_QUALITY}" == "beta" ]]; then
+  setpath "resources/server/manifest" "name" "Chad - Beta"
+  setpath "resources/server/manifest" "short_name" "Chad - Beta"
 else
-  setpath "resources/server/manifest" "name" "Chad"
-  setpath "resources/server/manifest" "short_name" "Chad"
-fi
-
-cp resources/server/manifest.json{,.bak}
-
-if [[ "${VSCODE_QUALITY}" == "insider" ]]; then
-  setpath "resources/server/manifest" "name" "Chad - Insiders"
-  setpath "resources/server/manifest" "short_name" "Chad - Insiders"
-else
-  # Clad already has this
   setpath "resources/server/manifest" "name" "Chad"
   setpath "resources/server/manifest" "short_name" "Chad"
 fi
@@ -241,6 +256,8 @@ if [[ "${OS_NAME}" == "linux" ]]; then
   # we need to edit a line in the post install template
   if [[ "${VSCODE_QUALITY}" == "insider" ]]; then
     sed -i "s/code-oss/clad-insiders/" resources/linux/debian/postinst.template
+  elif [[ "${VSCODE_QUALITY}" == "beta" ]]; then
+    sed -i "s/code-oss/clad-beta/" resources/linux/debian/postinst.template
   else
     sed -i "s/code-oss/clad/" resources/linux/debian/postinst.template
   fi

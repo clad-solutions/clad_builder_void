@@ -3,6 +3,13 @@ name: stable-macos
 on:
   workflow_dispatch:
     inputs:
+      channel:
+        type: choice
+        description: 'Deploy channel'
+        default: 'stable'
+        options:
+          - stable
+          - beta
       force_version:
         type: boolean
         description: Force update version
@@ -42,7 +49,7 @@ env:
   ORG_NAME: ${{ github.repository_owner }}
   OS_NAME: osx
   VERSIONS_REPOSITORY: ${{ github.repository_owner }}/clad_ide_versions
-  VSCODE_QUALITY: stable
+  VSCODE_QUALITY: ${{ inputs.channel || 'stable' }}
 
 jobs:
   build:
