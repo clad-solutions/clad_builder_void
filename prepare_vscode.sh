@@ -85,6 +85,10 @@ fi
 mv .npmrc .npmrc.bak
 cp ../npmrc .npmrc
 
+# Install compatible node-gyp globally to fix ESM compatibility issue
+# npx will prefer the global version over downloading the incompatible v12
+npm install -g node-gyp@10.0.1
+
 for i in {1..5}; do # try 5 times
   if [[ "${CI_BUILD}" != "no" && "${OS_NAME}" == "osx" ]]; then
     CXX=clang++ npm ci && break
