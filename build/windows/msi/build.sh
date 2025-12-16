@@ -15,12 +15,14 @@ if [[ "${VSCODE_QUALITY}" == "insider" ]]; then
   PRODUCT_UPGRADE_CODE="1C9B7195-5A9A-43B3-B4BD-583E20498467"
   ICON_DIR="..\\..\\..\\src\\insider\\resources\\win32"
   SETUP_RESOURCES_DIR=".\\resources\\insider"
+  EXE_NAME="Chad"
 else
   PRODUCT_NAME="Clad"
   PRODUCT_CODE="Clad"
   PRODUCT_UPGRADE_CODE="965370CD-253C-4720-82FC-2E6B02A53808"
   ICON_DIR="..\\..\\..\\src\\stable\\resources\\win32"
   SETUP_RESOURCES_DIR=".\\resources\\stable"
+  EXE_NAME="Chad"
 fi
 
 PRODUCT_ID=$( powershell.exe -command "[guid]::NewGuid().ToString().ToUpper()" )
@@ -47,8 +49,9 @@ else
 fi
 
 sed -i "s|@@PRODUCT_UPGRADE_CODE@@|${PRODUCT_UPGRADE_CODE}|g" .\\includes\\vscodium-variables.wxi
+sed -i "s|@@EXE_NAME@@|${EXE_NAME}|g" .\\vscodium.xsl
+sed -i "s|@@EXE_NAME@@|${EXE_NAME}|g" .\\vscodium.wxs
 sed -i "s|@@PRODUCT_NAME@@|${PRODUCT_NAME}|g" .\\vscodium.xsl
-sed -i "s|@@PRODUCT_NAME@@|${PRODUCT_NAME}|g" .\\vscodium.wxs
 
 find i18n -name '*.wxl' -print0 | xargs -0 sed -i "s|@@PRODUCT_NAME@@|${PRODUCT_NAME}|g"
 

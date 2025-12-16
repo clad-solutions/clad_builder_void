@@ -11,17 +11,17 @@
     </xsl:copy>
   </xsl:template>
 
-  <xsl:key name="vId1ToReplace" match="wi:Component[wi:File[contains(@Source,'@@PRODUCT_NAME@@.exe')]]" use="@Id"/>
+  <xsl:key name="vId1ToReplace" match="wi:Component[wi:File[contains(@Source,'@@EXE_NAME@@.exe')]]" use="@Id"/>
   <xsl:template match="node()[key('vId1ToReplace', @Id)]">
     <xsl:copy>
-      <xsl:attribute name="Id">@@PRODUCT_NAME@@.EXE</xsl:attribute>
+      <xsl:attribute name="Id">@@EXE_NAME@@.EXE</xsl:attribute>
       <xsl:copy-of select="@*[name()!='Id']"/>
       <xsl:apply-templates />
     </xsl:copy>
   </xsl:template>
-  <xsl:template match="wi:Component/wi:File[contains(@Source,'@@PRODUCT_NAME@@.exe')]">
+  <xsl:template match="wi:Component/wi:File[contains(@Source,'@@EXE_NAME@@.exe')]">
      <xsl:copy>
-        <xsl:attribute name="Id">@@PRODUCT_NAME@@.EXE</xsl:attribute>
+        <xsl:attribute name="Id">@@EXE_NAME@@.EXE</xsl:attribute>
         <xsl:copy-of select="@*[name()!='Id']"/>
         <xsl:apply-templates />
      </xsl:copy>
