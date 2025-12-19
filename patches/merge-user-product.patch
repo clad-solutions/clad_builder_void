@@ -64,6 +64,9 @@ index d27cdce..d758c5e 100644
 +			}, {}) as any;
 +
 +		const userProduct = (globalThis as Record<string, any>)._VSCODE_USER_PRODUCT_JSON || {};
++		delete userProduct?.version;
++		delete userProduct?.commit;
++		delete userProduct?.date;
 +
 +		product = merge(product, userProduct);
 +	} catch (ex) {
