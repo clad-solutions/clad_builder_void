@@ -127,6 +127,7 @@ setpath_json() {
 cp product.json{,.bak}
 # Keep the upstream VS Code engine version for extension compatibility
 ENGINE_VERSION=$( jq -r '.version' product.json.bak )
+export ENGINE_VERSION
 
 setpath "product" "checksumFailMoreInfoUrl" "https://go.microsoft.com/fwlink/?LinkId=828886"
 setpath "product" "documentationUrl" "https://www.cladlabs.ai/"

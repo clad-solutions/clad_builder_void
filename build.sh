@@ -21,20 +21,42 @@ if [[ "${SHOULD_BUILD}" == "yes" ]]; then
   # npm run valid-layers-check
 
   npm run buildreact
-  npm run gulp compile-build-without-mangling
-  npm run gulp compile-extension-media
-  npm run gulp compile-extensions-build
-  npm run gulp minify-vscode
+npm run gulp compile-build-without-mangling
+npm run gulp compile-extension-media
+npm run gulp compile-extensions-build
+npm run gulp minify-vscode
+
+set_final_product_version() {
+  if [[ -z "${ENGINE_VERSION}" ]]; then
+    return
+  fi
+
+  local root="$1"
+  if [[ ! -d "${root}" ]]; then
+    return
+  fi
+
+  local target
+  target=$(find "${root}" -path "*/Contents/Resources/app/product.json" -o -path "*/resources/app/product.json" | head -n 1)
+  if [[ -n "${target}" && -f "${target}" ]]; then
+    local tmp_product
+    tmp_product=$(mktemp)
+    jq --arg v "${ENGINE_VERSION}" '.version = $v' "${target}" > "${tmp_product}" && mv "${tmp_product}" "${target}"
+    echo "Set product.version=${ENGINE_VERSION} in ${target}"
+  fi
+}
 
   if [[ "${OS_NAME}" == "osx" ]]; then
     # generate Group Policy definitions
     # node build/lib/policies darwin # Void commented this out
 
-    npm run gulp "vscode-darwin-${VSCODE_ARCH}-min-ci"
+  npm run gulp "vscode-darwin-${VSCODE_ARCH}-min-ci"
 
-    find "../VSCode-darwin-${VSCODE_ARCH}" -print0 | xargs -0 touch -c
+  set_final_product_version "../VSCode-darwin-${VSCODE_ARCH}"
 
-    . ../build_cli.sh
+  find "../VSCode-darwin-${VSCODE_ARCH}" -print0 | xargs -0 touch -c
+
+  . ../build_cli.sh
 
     VSCODE_PLATFORM="darwin"
   elif [[ "${OS_NAME}" == "windows" ]]; then
@@ -46,6 +68,8 @@ if [[ "${SHOULD_BUILD}" == "yes" ]]; then
       . ../build/windows/rtf/make.sh
 
       npm run gulp "vscode-win32-${VSCODE_ARCH}-min-ci"
+
+      set_final_product_version "../VSCode-win32-${VSCODE_ARCH}"
 
       if [[ "${VSCODE_ARCH}" != "x64" ]]; then
         SHOULD_BUILD_REH="no"
@@ -60,6 +84,8 @@ if [[ "${SHOULD_BUILD}" == "yes" ]]; then
     # in CI, packaging will be done by a different job
     if [[ "${CI_BUILD}" == "no" ]]; then
       npm run gulp "vscode-linux-${VSCODE_ARCH}-min-ci"
+
+      set_final_product_version "../VSCode-linux-${VSCODE_ARCH}"
 
       find "../VSCode-linux-${VSCODE_ARCH}" -print0 | xargs -0 touch -c
 
