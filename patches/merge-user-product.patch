@@ -1,39 +1,62 @@
 diff --git a/src/main.ts b/src/main.ts
-index fdc424e..46b014b 100644
 --- a/src/main.ts
 +++ b/src/main.ts
-@@ -8,2 +8,3 @@ import * as fs from 'original-fs';
- import * as os from 'os';
+@@
+-import * as path from 'path';
+-import * as fs from 'original-fs';
+-import * as os from 'os';
+-import { performance } from 'perf_hooks';
++import * as path from 'path';
++import * as fs from 'original-fs';
++import * as os from 'os';
 +import { createRequire } from 'node:module';
- import { performance } from 'perf_hooks';
-@@ -24,2 +25,3 @@ import { NativeParsedArgs } from './vs/platform/environment/common/argv.js';
++import { performance } from 'perf_hooks';
+ import { configurePortable } from './bootstrap-node.js';
+ import { bootstrapESM } from './bootstrap-esm.js';
+ import { fileURLToPath } from 'url';
+ import { app, protocol, crashReporter, Menu, contentTracing } from 'electron';
+ import minimist from 'minimist';
+ import { product } from './bootstrap-meta.js';
+@@
+ import { NativeParsedArgs } from './vs/platform/environment/common/argv.js';
+ 
  const __dirname = path.dirname(fileURLToPath(import.meta.url));
 +const require = createRequire(import.meta.url);
  
-@@ -112,2 +114,14 @@ registerListeners();
+ perf.mark('code/didStartMain');
  
+@@
+ // Global app listeners
+ registerListeners();
 +function resolveUserProduct() {
 +	const userProductPath = path.join(userDataPath, 'product.json');
 +
 +	try {
-+		// Assign the product configuration to the global scope
 +		const productJson = require(userProductPath);
 +		// @ts-expect-error
 +		globalThis._VSCODE_USER_PRODUCT_JSON = productJson;
-+	} catch (ex) {
++	} catch {
++		// ignore missing/invalid user product.json
 +	}
 +}
-+
+ 
  /**
-@@ -208,2 +222,3 @@ async function startup(codeCachePath: string | undefined, nlsConfig: INLSConfigu
+  * We can resolve the NLS configuration early if it is defined
+@@
+ async function startup(codeCachePath: string | undefined, nlsConfig: INLSConfiguration): Promise<void> {
+ 	process.env['VSCODE_NLS_CONFIG'] = JSON.stringify(nlsConfig);
  	process.env['VSCODE_CODE_CACHE_PATH'] = codeCachePath || '';
 +	resolveUserProduct();
  
+ 	// Bootstrap ESM
+ 	await bootstrapESM();
 diff --git a/src/vs/platform/product/common/product.ts b/src/vs/platform/product/common/product.ts
-index d27cdce..d758c5e 100644
 --- a/src/vs/platform/product/common/product.ts
 +++ b/src/vs/platform/product/common/product.ts
-@@ -31,2 +31,36 @@ else if (globalThis._VSCODE_PRODUCT_JSON && globalThis._VSCODE_PACKAGE_JSON) {
+@@
+ else if (globalThis._VSCODE_PRODUCT_JSON && globalThis._VSCODE_PACKAGE_JSON) {
+ 	// Obtain values from product.json and package.json-data
+ 	product = globalThis._VSCODE_PRODUCT_JSON as unknown as IProductConfiguration;
  
 +	const { serviceUrl, controlUrl, extensionUrlTemplate, resourceUrlTemplate } = product.extensionsGallery || {};
 +
@@ -46,7 +69,7 @@ index d27cdce..d758c5e 100644
 +		}
 +	});
 +
-+	// Merge user-customized product.json
++	// Merge user-customized product.json but protect engine identity fields
 +	try {
 +		const merge = (...objects: any[]) =>
 +			objects.reduce((result, current) => {
@@ -64,9 +87,16 @@ index d27cdce..d758c5e 100644
 +			}, {}) as any;
 +
 +		const userProduct = (globalThis as Record<string, any>)._VSCODE_USER_PRODUCT_JSON || {};
++		// Prevent user overrides from breaking extension compatibility
++		delete userProduct?.version;
++		delete userProduct?.commit;
++		delete userProduct?.date;
 +
 +		product = merge(product, userProduct);
 +	} catch (ex) {
++		// ignore merge errors
 +	}
 +
  	// Running out of sources
+ 	if (env['VSCODE_DEV']) {
+ 		Object.assign(product, {

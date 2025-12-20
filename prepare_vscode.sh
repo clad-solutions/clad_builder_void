@@ -126,7 +126,7 @@ setpath_json() {
 # product.json
 cp product.json{,.bak}
 # Keep the upstream VS Code engine version for extension compatibility
-VSCODE_VERSION=$( jq -r '.version' product.json.bak )
+ENGINE_VERSION=$( jq -r '.version' product.json.bak )
 
 setpath "product" "checksumFailMoreInfoUrl" "https://go.microsoft.com/fwlink/?LinkId=828886"
 setpath "product" "documentationUrl" "https://www.cladlabs.ai/"
@@ -224,9 +224,9 @@ jsonTmp=$( jq -s '.[0] * .[1]' product.json ../product.json )
 echo "${jsonTmp}" > product.json && unset jsonTmp
 
 # Ensure product.version stays at the VS Code engine version (not the app's cladVersion)
-if [[ -n "${VSCODE_VERSION}" && "${VSCODE_VERSION}" != "null" ]]; then
+if [[ -n "${ENGINE_VERSION}" && "${ENGINE_VERSION}" != "null" ]]; then
   { set +x; } 2>/dev/null
-  jsonTmp=$( jq --arg version "${VSCODE_VERSION}" '.version = $version' product.json )
+  jsonTmp=$( jq --arg version "${ENGINE_VERSION}" '.version = $version' product.json )
   echo "${jsonTmp}" > product.json && unset jsonTmp
   set -x
 fi
