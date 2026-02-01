@@ -110,7 +110,7 @@ index 57398fb..b30ef50 100644
 +				}
 +
 +				const fetchedVersion = /\d+\.\d+\.\d+\.\d+/.test(update.productVersion) ? update.productVersion.replace(/(\d+\.\d+\.\d+)\.\d+(\-\w+)?/, '$1$2') : update.productVersion.replace(/(\d+\.\d+\.)0+(\d+)(\-\w+)?/, '$1$2$3')
-+				const currentVersion = this.productService.version.replace(/(\d+\.\d+\.)0+(\d+)(\-\w+)?/, '$1$2$3')
++				const currentVersion = (this.productService.cladVersion ?? this.productService.version).replace(/(\d+\.\d+\.)0+(\d+)(\-\w+)?/, '$1$2$3')
 +
 +				if(semver.compareBuild(currentVersion, fetchedVersion) >= 0) {
 +					this.setState(State.Idle(UpdateType.Setup));
@@ -196,7 +196,7 @@ index db92de2..2bbdad9 100644
 @@ -130,2 +145,10 @@ export class Win32UpdateService extends AbstractUpdateService implements IRelaun
  
 +				const fetchedVersion = /\d+\.\d+\.\d+\.\d+/.test(update.productVersion) ? update.productVersion.replace(/(\d+\.\d+\.\d+)\.\d+(\-\w+)?/, '$1$2') : update.productVersion.replace(/(\d+\.\d+\.)0+(\d+)(\-\w+)?/, '$1$2$3')
-+				const currentVersion = this.productService.version.replace(/(\d+\.\d+\.)0+(\d+)(\-\w+)?/, '$1$2$3')
++				const currentVersion = (this.productService.cladVersion ?? this.productService.version).replace(/(\d+\.\d+\.)0+(\d+)(\-\w+)?/, '$1$2$3')
 +
 +				if(semver.compareBuild(currentVersion, fetchedVersion) >= 0) {
 +					this.setState(State.Idle(updateType));
