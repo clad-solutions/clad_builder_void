@@ -35,11 +35,10 @@ env:
   APP_NAME: Chad
   ASSETS_REPOSITORY: ${{ github.repository_owner }}/clad_ide_binaries
   BINARY_NAME: chad
-  DISABLE_UPDATE: 'yes'
   GH_REPO_PATH: ${{ github.repository_owner }}/clad_ide_binaries
   ORG_NAME: ${{ github.repository_owner }}
   OS_NAME: linux
-  # VERSIONS_REPOSITORY: Not needed for Clad
+  VERSIONS_REPOSITORY: ${{ github.repository_owner }}/clad_ide_versions
   VSCODE_QUALITY: stable
 
 jobs:
